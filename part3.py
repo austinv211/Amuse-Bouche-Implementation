@@ -2,10 +2,11 @@
 # Description: Python implementation of part 3 code
 # Author: Austin Vargason
 
-from typing import Any, TypeVar, List, NewType, Mapping, Callable
+from typing import Any, TypeVar, List, NewType, Mapping, Callable, Tuple
 from pyrsistent import PClass, field
 from datetime import date, timedelta
-from toolz.curried import curry
+from toolz import curry, compose
+from functools import partial
 
 #defining what a just is
 class Just(PClass):
@@ -81,12 +82,7 @@ def maybeAddAWeek(value: Maybe) -> Maybe:
         return Nothing()
 
 aWeekLater1 = maybeAddAWeek(anInterestingDate)
-aWeekLaterTest = maybeAddAWeek("blah")
-
-print(aWeekLater)
-print(anInterestingDate)
-print(aWeekLater1)
-print(aWeekLaterTest)
+aWeekLaterBlah = maybeAddAWeek("blah")
 
 # part 3b
 tvShows = {1966:"Star Trek", 1969:"Monty Python's Flying Circus", 1989:"The Simpsons"}
@@ -94,11 +90,63 @@ tvShows = {1966:"Star Trek", 1969:"Monty Python's Flying Circus", 1989:"The Simp
 def showForYear(year: int) -> Maybe:
     return myLookup(year, tvShows)
 
+@curry
+def listToMaybe(values: List[A]) -> [Maybe]:
+    if (len(values) > 0):
+        return [Just(a=res) if res != None else Nothing() for res in values]
+    else:
+        return Nothing()
 
 
+def showWithName(showName: str) -> Maybe:
+    curryFilter = curry(filter)
+    return compose(listToMaybe , list, curryFilter(lambda k: showName in k)) (tvShows.values())
 
+def favoriteShow(value: str) -> Maybe:
+    if value == "Amy":
+        return Just(a="Batman")
+    elif value == "Bob":
+        return Just(a="Iron Chef")
+    else:
+        return Nothing()
 
+# define a person
+class Person(PClass):
+    name = field(type=str)
+    year = field(type=int)
 
+amy = Person(name="Amy", year=1971)
+cam = Person(name="Cam", year=1989)
+deb = Person(name="Deb", year=1967)
+monty = Person(name="Monty", year=1973)
+
+class Infix(object):
+    def __init__(self, func):
+        self.func = func
+    def __or__(self, other):
+        return self.func(other)
+    def __ror__(self, other):
+        return Infix(partial(self.func, other))
+    def __call__(self, v1, v2):
+        return self.func(v1, v2)
+
+@Infix
+def short(x, y):
+    return x if not isinstance(x, Nothing) else y
+
+def pickShow(value: Person) -> Maybe:
+    return favoriteShow(value.name) |short| showWithName(value.name) |short| showForYear(value.year)
+    
+
+if __name__ == "__main__":
+    print(f'aWeekLater: {aWeekLater}')
+    print(f'anInterestingDate: {anInterestingDate}')
+    print(f'aWeekLater1: {aWeekLater1}')
+    print(f'aWeekLaterBlah: {aWeekLaterBlah}')
+    print(f'\nPickShow Amy: {pickShow(amy)}')
+    print(f'PickShow Cam:{pickShow(cam)}')
+    print(f'PickShow Deb: {pickShow(deb)}')
+    print(f'PickShow Monty: {pickShow(monty)}')
 
 
 
