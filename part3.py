@@ -2,8 +2,10 @@
 # Description: Python implementation of part 3 code
 # Author: Austin Vargason
 
-from typing import Any, TypeVar, List, NewType, Mapping
+from typing import Any, TypeVar, List, NewType, Mapping, Callable
 from pyrsistent import PClass, field
+from datetime import date, timedelta
+from toolz.curried import curry
 
 #defining what a just is
 class Just(PClass):
@@ -52,6 +54,51 @@ def firstOneMaybe(values: List[A]) -> Maybe:
         return Just(a=result)
     except:
         return Nothing()
+
+def addAWeek(value: date) -> date:
+    return value.a + timedelta(days=7)
+
+# fmap
+@curry
+def fmap(function_list: [Callable], argument: A) -> [Maybe]:
+ result = argument
+ for function in function_list:
+  #print "calling " + function.__name__ + "(" + repr(result) + ")"
+  result = function(result)
+ return result
+
+interestingDates: List[date] = [date(1966, 9, 8), date(1969, 6, 21), date(1969, 10, 29)]
+
+anInterestingDate: Maybe = firstOneMaybe(interestingDates)
+
+aWeekLater = fmap([addAWeek], anInterestingDate)
+
+
+def maybeAddAWeek(value: Maybe) -> Maybe:
+    try:
+        return fmap([addAWeek], value)
+    except:
+        return Nothing()
+
+aWeekLater1 = maybeAddAWeek(anInterestingDate)
+aWeekLaterTest = maybeAddAWeek("blah")
+
+print(aWeekLater)
+print(anInterestingDate)
+print(aWeekLater1)
+print(aWeekLaterTest)
+
+# part 3b
+tvShows = {1966:"Star Trek", 1969:"Monty Python's Flying Circus", 1989:"The Simpsons"}
+
+def showForYear(year: int) -> Maybe:
+    return myLookup(year, tvShows)
+
+
+
+
+
+
 
 
 
